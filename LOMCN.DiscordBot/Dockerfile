@@ -10,7 +10,7 @@ COPY ["LOMCN.DiscordBot/LOMCN.DiscordBot.csproj", "LOMCN.DiscordBot/"]
 RUN dotnet restore "LOMCN.DiscordBot/LOMCN.DiscordBot.csproj"
 COPY . .
 WORKDIR "/src/LOMCN.DiscordBot"
-RUN dotnet build "LOMCN.DiscordBot.csproj" -c Release -o /app/build
+RUN dotnet build "LOMCN.DiscordBot.csproj" --build-arg "my_arg=YOUR_TOKEN_HERE" -c Release -o /app/build
 
 FROM build AS publish
 RUN dotnet publish "LOMCN.DiscordBot.csproj" -c Release -o /app/publish
@@ -18,4 +18,5 @@ RUN dotnet publish "LOMCN.DiscordBot.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
 ENTRYPOINT dotnet watch run --no-restore

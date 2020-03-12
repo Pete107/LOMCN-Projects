@@ -6,15 +6,15 @@ namespace LOMCN.DiscordBot
 {
     internal class Config
     {
-        [JsonProperty("token")] internal string Token = "NTgwNzE0NzMwNjIxMTA4MjQ0.XmUjCQ.bhQMWnim4JMGvn9PLNce92wG8g4";
+        [JsonProperty("token")] internal string Token { get; set; } = string.Empty;
 
-        [JsonProperty("prefix")] internal string Prefix = ";;";
+        [JsonProperty("prefix")] internal string Prefix { get; set; } = ";;";
 
-        [JsonProperty("color")] private string _color = "#7289DA";
+        [JsonProperty("color")] private string _color { get; set; } = "#7289DA";
         internal DiscordColor Color => new DiscordColor(_color);
 
-        [JsonProperty("mongo_host")] internal string DbHost = "192.168.0.11";
-        [JsonProperty("mongo_port")] internal int DbPort = 27017;
+        [JsonProperty("mongo_host")] internal string DbHost { get; set; } = "192.168.0.11";
+        [JsonProperty("mongo_port")] internal int DbPort { get; set; } = 27017;
 
         public static Config LoadFromFile(string path)
         {

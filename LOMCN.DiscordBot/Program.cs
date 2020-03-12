@@ -20,15 +20,25 @@ namespace LOMCN.DiscordBot
                 _config = new Config();
                 _config.SaveToFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json"));
             }
-            _dbHandler = DbHandler.Instance;
-            _statusChecker = StatusChecker.Instance;
-            _dbHandler.Start();
-            _statusChecker.Start();
-            using (_bot = new Bot())
-            {
-                Bot.RunAsync().Wait();
-            }
 
+            if (Environment.GetEnvironmentVariable("BOT_TOKEN") != null &&
+                !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("BOT_TOKEN")) &&
+                string.IsNullOrEmpty(_config.Token) ||
+                _config.Token == Environment.GetEnvironmentVariable("BOT_TOKEN"))
+            {
+                _config.Token = Environment.GetEnvironmentVariable("BOT_TOKEN");
+            }
+            if (_config.Token != "YOUR_TOKEN_HERE")
+            {
+                _dbHandler = DbHandler.Instance;
+                _statusChecker = StatusChecker.Instance;
+                _dbHandler.Start();
+                _statusChecker.Start();
+                using (_bot = new Bot())
+                {
+                    Bot.RunAsync().Wait();
+                }
+            }
             _config.SaveToFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json"));
         }
     }
