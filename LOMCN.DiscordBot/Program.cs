@@ -9,8 +9,8 @@ namespace LOMCN.DiscordBot
         public static Config Config => _config;
         private static DbHandler _dbHandler;
         private static StatusChecker _statusChecker;
-        private static Bot _bot;
-        public static Bot Bot => _bot;
+        private static Bot Bot { get; set; }
+
         private static void Main()
         {
             if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json")))
@@ -26,7 +26,8 @@ namespace LOMCN.DiscordBot
                 string.IsNullOrEmpty(_config.Token) ||
                 _config.Token == Environment.GetEnvironmentVariable("BOT_TOKEN"))
             {
-                _config.Token = Environment.GetEnvironmentVariable("BOT_TOKEN");
+                if (Environment.GetEnvironmentVariable("BOT_TOKEN") != "YOUR_TOKEN_HERE")
+                    _config.Token = Environment.GetEnvironmentVariable("BOT_TOKEN");
             }
             if (_config.Token != "YOUR_TOKEN_HERE")
             {
@@ -34,7 +35,7 @@ namespace LOMCN.DiscordBot
                 _statusChecker = StatusChecker.Instance;
                 _dbHandler.Start();
                 _statusChecker.Start();
-                using (_bot = new Bot())
+                using (Bot = new Bot())
                 {
                     Bot.RunAsync().Wait();
                 }

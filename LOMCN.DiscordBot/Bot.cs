@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,14 +12,14 @@ namespace LOMCN.DiscordBot
 {
     public class Bot : IDisposable
     {
-        private static bool _ready;
-        public static bool Ready => _ready;
+        public static bool Ready { get; private set; }
+
         private const ulong GuildId = 562378924135546931;
         private const ulong ChannelId = 562408484080189460;
-        private DiscordClient _client;
+        private readonly DiscordClient _client;
         private InteractivityModule _interactivity;
-        private StartTimes _startTimes;
-        private CancellationTokenSource _cts;
+        private readonly StartTimes _startTimes;
+        private readonly CancellationTokenSource _cts;
 
         
         private DiscordChannel _channel;
@@ -103,7 +102,7 @@ namespace LOMCN.DiscordBot
             _channel = channels.FirstOrDefault(a => a.Id == ChannelId);
             BotWorker.Instance.StatusChanged += BotWorkerOnStatusChanged;
             Console.WriteLine("Bot is ready");
-            _ready = true;
+            Ready = true;
             StatusChecker.Instance.Start();
         }
 
@@ -123,15 +122,6 @@ namespace LOMCN.DiscordBot
             BotWorker.Instance.StatusChanged -= BotWorkerOnStatusChanged;
             BotWorker.Instance.Dispose();
             DbHandler.Instance.Dispose();
-        }
-
-        private static void WriteCenter(string value, int skipline = 0)
-        {
-            for (var i = 0; i < skipline; i++)
-                Console.WriteLine();
-            if (Console.WindowWidth > value.Length)
-                Console.SetCursorPosition((Console.WindowWidth - value.Length) / 2, Console.CursorTop);
-            Console.WriteLine(value);
         }
     }
 }

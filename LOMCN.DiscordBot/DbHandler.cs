@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -12,8 +11,8 @@ namespace LOMCN.DiscordBot
 {
     public class DbHandler : IDisposable
     {
-        public static bool _ready;
-        public static bool Ready => _ready;
+        public static bool Ready { get; private set; }
+
         public Func<Guid, ServerEntry> FindById;
         public Func<string, ServerEntry> FindByServerName;
         public Func<Guid, ServerEntryStatus> GetStatusByServerId;
@@ -23,8 +22,8 @@ namespace LOMCN.DiscordBot
         public Action<Guid, ServerEntry> UpdateServer;
         public Action<ServerEntry> DeleteServer;
         public static DbHandler Instance { get; } = new DbHandler();
-        private bool _running;
-        public bool Running => _running;
+        public bool Running { get; private set; }
+
         private MongoClient _client;
         private IMongoDatabase _db;
         public event EventHandler<List<ServerEntry>> DataUpdated;
@@ -62,7 +61,7 @@ namespace LOMCN.DiscordBot
 
             _client = new MongoClient($"mongodb://{_config.DbHost}:{_config.DbPort}");
             _db = _client.GetDatabase("lomcn");
-            _running = true;
+            Running = true;
 
             FindById = serverId => FindOne(a => a.Id == serverId);
             FindByServerName = serverName => FindOne(a => a.ServerName.ToLower() == serverName.ToLower());
@@ -95,14 +94,14 @@ namespace LOMCN.DiscordBot
                     continue;
                 }
                 if (!Ready)
-                    _ready = true;
+                    Ready = true;
                 var current = GetAllServers();
                 DataUpdated.Invoke(this, current);
                 Thread.Sleep(TimeSpan.FromMinutes(10));
             }
         }
 
-        public void AddEntry(ServerEntry entry)
+        private void AddEntry(ServerEntry entry)
         {
             if (entry.CurrentStatus == null)
                 return;
@@ -158,7 +157,7 @@ namespace LOMCN.DiscordBot
             AddEntry(entry);
         }
 
-        public void UpdateStatus(Guid id, ServerEntryStatus newStatus)
+        private void UpdateStatus(Guid id, ServerEntryStatus newStatus)
         {
             var entry = FindById(id);
             if (entry == null)
