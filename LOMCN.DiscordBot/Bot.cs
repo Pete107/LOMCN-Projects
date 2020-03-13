@@ -14,24 +14,20 @@ namespace LOMCN.DiscordBot
     {
         public static bool Ready { get; private set; }
 
-        private const ulong GuildId = 562378924135546931;
-        private const ulong ChannelId = 562408484080189460;
         private readonly DiscordClient _client;
         private InteractivityModule _interactivity;
         private readonly StartTimes _startTimes;
         private readonly CancellationTokenSource _cts;
-
-        
         private DiscordChannel _channel;
-
+        private readonly Config _config;
         public Bot()
         {
-            var config = Program.Config;
+            _config = Program.Config;
             _client = new DiscordClient(new DiscordConfiguration
             {
                 AutoReconnect = true,
                 EnableCompression = true,
-                Token = config.Token,
+                Token = _config.Token,
                 TokenType = TokenType.Bot,
                 LogLevel = LogLevel.Debug,
                 UseInternalLogHandler = true
@@ -68,7 +64,7 @@ namespace LOMCN.DiscordBot
             {
                 CaseSensitive = false,
                 EnableMentionPrefix = true,
-                StringPrefix = config.Prefix,
+                StringPrefix = _config.Prefix,
                 IgnoreExtraArguments = true,
                 Dependencies = dep
             });
@@ -93,24 +89,40 @@ namespace LOMCN.DiscordBot
                 await Task.Delay(500);
         }
 
+        private DiscordMessage _lastMessage;
         private async Task OnReadyAsync(ReadyEventArgs e)
         {
             await Task.Yield();
             _startTimes.SocketStart = DateTime.Now;
-            var guilds = await _client.GetGuildAsync(GuildId);
-            var channels= await guilds.GetChannelsAsync();
-            _channel = channels.FirstOrDefault(a => a.Id == ChannelId);
+            var guild = await _client.GetGuildAsync(_config.GuildId);
+            var channels= await guild.GetChannelsAsync();
+            _channel = channels.FirstOrDefault(a => a.Id == _config.ChannelId);
             BotWorker.Instance.StatusChanged += BotWorkerOnStatusChanged;
             Console.WriteLine("Bot is ready");
             Ready = true;
             StatusChecker.Instance.Start();
         }
 
-        private void BotWorkerOnStatusChanged(object sender, string output)
+        private async void BotWorkerOnStatusChanged(object sender, string output)
         {
+            if (_channel == null)
+                return;
             if (string.IsNullOrEmpty(output)) return;
-            Console.WriteLine($"Message Received : {output}");
-            _channel?.SendMessageAsync(output);
+            try
+            {
+                if (_lastMessage != null)
+                    await _channel.DeleteMessageAsync(_lastMessage);
+                else
+                {
+                    var currentMessages = await _channel.GetMessagesAsync();
+                    await _channel.DeleteMessagesAsync(currentMessages);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            _lastMessage = await _channel?.SendMessageAsync(output);
         }
 
 

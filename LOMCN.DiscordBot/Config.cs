@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using DSharpPlus.Entities;
 using Newtonsoft.Json;
 
@@ -15,6 +16,13 @@ namespace LOMCN.DiscordBot
 
         [JsonProperty("mongo_host")] internal string DbHost { get; set; } = "192.168.0.11";
         [JsonProperty("mongo_port")] internal int DbPort { get; set; } = 27017;
+
+        [JsonProperty("output_delay")] internal TimeSpan OutputDelay { get; set; } = TimeSpan.FromMinutes(15);
+        [JsonProperty("update_delay")] internal TimeSpan UpdateDelay { get; set; } = TimeSpan.FromMinutes(10);
+        [JsonProperty("server_ping_timeout")] internal TimeSpan PingTimeout { get; set; } = TimeSpan.FromSeconds(2);
+        [JsonProperty("guildId")] internal ulong GuildId { get; set; } = 0;
+        [JsonProperty("channelId")] internal ulong ChannelId { get; set; } = 0;
+        
 
         public static Config LoadFromFile(string path)
         {

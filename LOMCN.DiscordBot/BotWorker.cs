@@ -23,7 +23,6 @@ namespace LOMCN.DiscordBot
         {
             if (!string.IsNullOrEmpty(_output))
             {
-                Console.WriteLine($"Event emitted with {_output}");
                 StatusChanged?.Invoke(null, _output);
                 if (Bot.Ready)
                     _output = string.Empty;

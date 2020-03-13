@@ -97,7 +97,7 @@ namespace LOMCN.DiscordBot
                     Ready = true;
                 var current = GetAllServers();
                 DataUpdated.Invoke(this, current);
-                Thread.Sleep(TimeSpan.FromMinutes(10));
+                Thread.Sleep(_config.UpdateDelay);
             }
         }
 

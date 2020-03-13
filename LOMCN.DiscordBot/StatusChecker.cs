@@ -41,7 +41,7 @@ namespace LOMCN.DiscordBot
                         if (serverEntry.ShowUserCount && serverEntry.SubscriptionTill >= DateTime.Now)
                         {
                             if (client.ConnectAsync(serverEntry.ServerAddress, serverEntry.StatusPort)
-                                .Wait(2000))
+                                .Wait(Program.Config.PingTimeout))
                             {
                                 string output;
                                 using (var stream = client.GetStream())
@@ -63,7 +63,7 @@ namespace LOMCN.DiscordBot
                                 };
                             }
                             else if (client.ConnectAsync(serverEntry.ServerAddress, serverEntry.GamePort)
-                                .Wait(2000))
+                                .Wait(Program.Config.PingTimeout))
                             {
                                 status = new ServerEntryStatus
                                 {
@@ -88,7 +88,7 @@ namespace LOMCN.DiscordBot
                         else
                         {
                             if (client.ConnectAsync(serverEntry.ServerAddress, serverEntry.GamePort)
-                                .Wait(2000))
+                                .Wait(Program.Config.PingTimeout))
                             {
                                 status = new ServerEntryStatus
                                 {
@@ -114,7 +114,7 @@ namespace LOMCN.DiscordBot
                         DbHandler.Instance.UpdateServerStatus(serverEntry.Id, status);
                     }
 
-                    Thread.Sleep(TimeSpan.FromMinutes(15));
+                    Thread.Sleep(Program.Config.OutputDelay);
                 }
                 else Thread.Sleep(TimeSpan.FromMinutes(1));
             }
