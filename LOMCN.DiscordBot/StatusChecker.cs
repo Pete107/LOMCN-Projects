@@ -1,19 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
+using System.IO;
+using System.Net;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace LOMCN.DiscordBot
 {
     public class StatusChecker
     {
+        private const string CONTENT_TYPE = "application/json; charset=utf-8";
         public static StatusChecker Instance { get; } = new StatusChecker();
         public bool Running { get; private set; }
         private Thread _thread;
+        private readonly Config _config;
         private StatusChecker()
         {
-            
+            _config = Program.Config;
         }
 
         public void Start()
@@ -22,102 +25,49 @@ namespace LOMCN.DiscordBot
             _thread.Start();
         }
 
-        private List<ServerEntry> _servers;
         private void WorkLoop()
         {
             Running = true;
             while (Running)
             {
-                if (!DbHandler.Ready)
+                if (!DbHandler.Ready || !Bot.Ready)
                     Thread.Sleep(TimeSpan.FromSeconds(30));
-                _servers = DbHandler.Instance.GetAllServers();
-                if (_servers.Count > 0)
+                var request = (HttpWebRequest) WebRequest.Create(_config.StatusURL);
+                request.ContentType = CONTENT_TYPE;
+                request.Credentials = CredentialCache.DefaultCredentials;
+                var response = request.GetResponse();
+                var serverList = new List<ServerModel>();
+                using (var stream = response.GetResponseStream())
                 {
-                    foreach (var serverEntry in _servers)
+                    if (stream != null)
                     {
-                        ServerEntryStatus status;
-
-                        using var client = new TcpClient();
-                        if (serverEntry.ShowUserCount && serverEntry.SubscriptionTill >= DateTime.Now)
+                        using (var reader = new StreamReader(stream))
                         {
-                            if (client.ConnectAsync(serverEntry.ServerAddress, serverEntry.StatusPort)
-                                .Wait(Program.Config.PingTimeout))
-                            {
-                                string output;
-                                using (var stream = client.GetStream())
-                                {
-                                    var bytes = new byte[client.ReceiveBufferSize];
-                                    stream.Read(bytes, 0, bytes.Length);
-                                    output = Encoding.ASCII.GetString(bytes);
-                                }
-
-                                if (output.Length <= 0) return;
-                                var splits = output.Replace("\0", "").Split('/');
-                                int.TryParse(splits[2], out var count);
-                                status = new ServerEntryStatus
-                                {
-                                    Id = serverEntry.CurrentStatus.Id,
-                                    EditDate = DateTime.Now,
-                                    Online = true,
-                                    UserCount = count
-                                };
-                            }
-                            else if (client.ConnectAsync(serverEntry.ServerAddress, serverEntry.GamePort)
-                                .Wait(Program.Config.PingTimeout))
-                            {
-                                status = new ServerEntryStatus
-                                {
-                                    Id = serverEntry.CurrentStatus.Id,
-                                    EditDate = DateTime.Now,
-                                    Online = true,
-                                    UserCount = 0
-                                };
-                            }
-                            else
-                            {
-                                status = new ServerEntryStatus
-                                {
-                                    Id = serverEntry.CurrentStatus.Id,
-                                    EditDate = DateTime.Now,
-                                    Online = false,
-                                    UserCount = -1
-                                };
-
-                            }
+                            var result = reader.ReadToEnd();
+                            serverList = JsonConvert.DeserializeObject<List<ServerModel>>(result);
                         }
-                        else
-                        {
-                            if (client.ConnectAsync(serverEntry.ServerAddress, serverEntry.GamePort)
-                                .Wait(Program.Config.PingTimeout))
-                            {
-                                status = new ServerEntryStatus
-                                {
-                                    Id = serverEntry.CurrentStatus.Id,
-                                    EditDate = DateTime.Now,
-                                    Online = true,
-                                    UserCount = 0
-                                };
-                            }
-                            else
-                            {
-                                status = new ServerEntryStatus
-                                {
-                                    Id = serverEntry.CurrentStatus.Id,
-                                    EditDate = DateTime.Now,
-                                    Online = false,
-                                    UserCount = -1
-                                };
-
-                            }
-                        }
-
-                        DbHandler.Instance.UpdateServerStatus(serverEntry.Id, status);
                     }
-
-                    Thread.Sleep(Program.Config.OutputDelay);
                 }
-                else Thread.Sleep(TimeSpan.FromMinutes(1));
+
+                response.Close();
+
+                foreach (var serverModel in serverList)
+                {
+                    DbHandler.Instance.UpdateServerStatus(serverModel);
+                }
+
+                Thread.Sleep(Program.Config.OutputDelay);
             }
         }
+    }
+
+    public class ServerModel
+    {
+        public string Name { get; set; }
+        public string Online { get; set; }
+        public string Type { get; set; }
+        public string EXPRate { get; set; }
+        public string UserCount { get; set; }
+        public string Id { get; set; }
     }
 }

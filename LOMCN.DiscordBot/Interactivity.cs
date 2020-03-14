@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -38,6 +39,38 @@ namespace LOMCN.DiscordBot
                 await ctx.RespondAsync("Confirmation Cancelled");
             else
                 await ctx.RespondAsync("Confirmation Denied!");
+        }
+
+        [Command("shutdown")]
+        public async Task ShutdownAsync(CommandContext ctx)
+        {
+            if (ctx.Member.Id != 121672783989178368)
+                return;
+            await ctx.RespondAsync("Shutting down!");
+            dep.Cts.Cancel();
+        }
+
+        [Command("uptime")]
+        public async Task GetServerUptime(CommandContext ctx, string serverName)
+        {
+            if (string.IsNullOrEmpty(serverName))
+            {
+                await ctx.RespondAsync("Invalid server name");
+                return;
+            }
+            var server = DbHandler.Instance.FindByServerName(serverName);
+            if (server == null)
+            {
+                await ctx.RespondAsync("Server not found!");
+                return;
+            }
+
+            var timesOnline = server.History.Count(a => a.Online);
+            var totalUserCount = server.History.Sum(serverEntryStatusHistory =>
+                serverEntryStatusHistory.UserCount != -1 ? serverEntryStatusHistory.UserCount : 0);
+            var averageUserCount = totalUserCount / server.History.Count;
+            var onlinePercent = timesOnline * 100m / server.History.Count;
+            await ctx.RespondAsync($"{serverName} has an up-time of : {onlinePercent}% with an average User count of : {averageUserCount}.");
         }
     }
 }

@@ -69,7 +69,6 @@ namespace LOMCN.DiscordBot
                 Dependencies = dep
             });
 
-            cnext.RegisterCommands<Owner>();
             cnext.RegisterCommands<Interactivity>();
 
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Timers;
 
 namespace LOMCN.DiscordBot
@@ -34,6 +35,9 @@ namespace LOMCN.DiscordBot
             _models = e;
             lock (_models)
             {
+                _models = _models.OrderBy(a => a.CurrentStatus.Online)
+                    .ThenByDescending(a => a.CurrentStatus.UserCount != -1)
+                    .ThenByDescending(a => a.CurrentStatus.UserCount).ToList();
                 _output = "```md\r\n";
                 foreach (var serverEntry in _models)
                 {
@@ -58,7 +62,7 @@ namespace LOMCN.DiscordBot
 
             _timer = null;
             StatusChanged = null;
-            _models.Clear();
+            _models?.Clear();
             _models = null;
             _output = null;
         }

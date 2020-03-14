@@ -22,6 +22,9 @@ namespace LOMCN.DiscordBot
         [JsonProperty("server_ping_timeout")] internal TimeSpan PingTimeout { get; set; } = TimeSpan.FromSeconds(2);
         [JsonProperty("guildId")] internal ulong GuildId { get; set; } = 0;
         [JsonProperty("channelId")] internal ulong ChannelId { get; set; } = 0;
+
+        [JsonProperty("status_request_endpoint")]
+        internal string StatusURL { get; set; } = "https://www.lomcn.org/forum/siggen/siggen_getdata.php";
         
 
         public static Config LoadFromFile(string path)

@@ -13,12 +13,13 @@ namespace LOMCN.DiscordBot
     {
         public static bool Ready { get; private set; }
 
-        public Func<Guid, ServerEntry> FindById;
+        public Func<Guid, ServerEntry> FindByGuid;
+        public Func<int, ServerEntry> FindById;
         public Func<string, ServerEntry> FindByServerName;
         public Func<Guid, ServerEntryStatus> GetStatusByServerId;
         public Func<Guid, List<ServerEntryStatusHistory>> GetStatusHistoryByServerId;
         public Func<List<ServerEntry>> GetAllServers;
-        public Action<Guid, ServerEntryStatus> UpdateServerStatus;
+        public Action<ServerModel> UpdateServerStatus;
         public Action<Guid, ServerEntry> UpdateServer;
         public Action<ServerEntry> DeleteServer;
         public static DbHandler Instance { get; } = new DbHandler();
@@ -63,7 +64,8 @@ namespace LOMCN.DiscordBot
             _db = _client.GetDatabase("lomcn");
             Running = true;
 
-            FindById = serverId => FindOne(a => a.Id == serverId);
+            FindByGuid = serverId => FindOne(a => a.Id == serverId);
+            FindById = serverId => FindOne(a => a.ServerId == serverId);
             FindByServerName = serverName => FindOne(a => a.ServerName.ToLower() == serverName.ToLower());
             GetStatusByServerId = serverId => FindOne(a => a.Id == serverId)?.CurrentStatus;
             GetStatusHistoryByServerId = serverId => FindOne(a => a.Id == serverId).History;
@@ -107,7 +109,6 @@ namespace LOMCN.DiscordBot
                 return;
             entry.History.Add(new ServerEntryStatusHistory
             {
-                EntryTime = entry.CurrentStatus.EditDate,
                 Online = entry.CurrentStatus.Online,
                 UserCount = entry.CurrentStatus.UserCount
             });
@@ -126,49 +127,43 @@ namespace LOMCN.DiscordBot
             return query.FirstOrDefault(search);
         }
 
-        public void UpdateSubscription(Guid id, DateTime till)
+        public void NewServer(ServerModel model)
         {
-            var entry = FindById(id);
-            if (entry == null) return;
-            entry.SubscriptionTill = till;
-            Update(entry);
-        }
-
-        public void NewServer(DateTime liveDate, string serverName, string serverAddress, DateTime subscriptionTill,
-            bool showUserCount = false, MirServerType mirServerType = MirServerType.Mir2Crystal, int statusPort = 3000, int gamePort = 7000)
-        {
-            var existing = FindOne(a => a.ServerName.ToLower() == serverName.ToLower());
+            var existing = FindOne(a => a.ServerName.ToLower() == model.Name.ToLower());
             if (existing != null)
                 return;
             var entry = new ServerEntry
             {
-                CreateDate = DateTime.Now,
                 CurrentStatus = new ServerEntryStatus(),
                 History = new List<ServerEntryStatusHistory>(),
-                LiveDate = liveDate,
-                ServerAddress = serverAddress,
-                ServerName = serverName,
-                StatusPort = statusPort,
-                ServerType = mirServerType,
-                ShowUserCount = showUserCount,
-                SubscriptionTill = subscriptionTill,
-                GamePort = gamePort
+                ServerName = model.Name,
+                ServerType = model.Type,
+                ServerId = Convert.ToInt32(model.Id),
+                ExpRate = model.EXPRate
             };
             AddEntry(entry);
         }
 
-        private void UpdateStatus(Guid id, ServerEntryStatus newStatus)
+        private void UpdateStatus(ServerModel model)
         {
+            var id = Convert.ToInt32(model.Id);
             var entry = FindById(id);
             if (entry == null)
+            {
+                NewServer(model);
                 return;
+            }
             var statusHistory = new ServerEntryStatusHistory
             {
-                EntryTime = entry.CurrentStatus.EditDate,
                 Online = entry.CurrentStatus.Online,
                 UserCount = entry.CurrentStatus.UserCount
             };
-            entry.CurrentStatus = newStatus;
+            entry.CurrentStatus = new ServerEntryStatus
+            {
+                Id = entry.CurrentStatus.Id,
+                Online = model.Online == "1",
+                UserCount = Convert.ToInt32(model.UserCount)
+            };
             entry.History.Add(statusHistory);
             Update(entry);
         }
