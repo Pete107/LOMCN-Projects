@@ -32,28 +32,33 @@ namespace LOMCN.DiscordBot
             {
                 if (!DbHandler.Ready || !Bot.Ready)
                     Thread.Sleep(TimeSpan.FromSeconds(30));
-                var request = (HttpWebRequest) WebRequest.Create(_config.StatusURL);
-                request.ContentType = CONTENT_TYPE;
-                request.Credentials = CredentialCache.DefaultCredentials;
-                var response = request.GetResponse();
-                var serverList = new List<ServerModel>();
-                using (var stream = response.GetResponseStream())
+                try
                 {
-                    if (stream != null)
+                    var request = (HttpWebRequest) WebRequest.Create(_config.StatusURL);
+                    request.ContentType = CONTENT_TYPE;
+                    request.Credentials = CredentialCache.DefaultCredentials;
+                    var response = request.GetResponse();
+                    var serverList = new List<ServerModel>();
+                    using (var stream = response.GetResponseStream())
                     {
-                        using (var reader = new StreamReader(stream))
+                        if (stream != null)
                         {
+                            using var reader = new StreamReader(stream);
                             var result = reader.ReadToEnd();
                             serverList = JsonConvert.DeserializeObject<List<ServerModel>>(result);
                         }
                     }
+
+                    response.Close();
+
+                    foreach (var serverModel in serverList)
+                    {
+                        DbHandler.Instance.UpdateServerStatus(serverModel);
+                    }
                 }
-
-                response.Close();
-
-                foreach (var serverModel in serverList)
+                catch (Exception e)
                 {
-                    DbHandler.Instance.UpdateServerStatus(serverModel);
+                    Program.Log(e);
                 }
 
                 Thread.Sleep(Program.Config.OutputDelay);

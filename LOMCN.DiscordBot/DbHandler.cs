@@ -28,10 +28,9 @@ namespace LOMCN.DiscordBot
         private MongoClient _client;
         private IMongoDatabase _db;
         public event EventHandler<List<ServerEntry>> DataUpdated;
-        private readonly Config _config;
+        private Config _config => Program.Config;
         private DbHandler()
         {
-            _config = Program.Config;
             BsonClassMap.RegisterClassMap<ServerEntry>(cm =>
             {
                 cm.AutoMap();
@@ -52,40 +51,127 @@ namespace LOMCN.DiscordBot
         private Thread _thread;
         public void Start()
         {
+            if (Running) return;
             _thread = new Thread(WorkLoop) { IsBackground = true};
             _thread.Start();
         }
 
         private void WorkLoop(object obj)
         {
-            
-
-            _client = new MongoClient($"mongodb://{_config.DbHost}:{_config.DbPort}");
-            _db = _client.GetDatabase("lomcn");
-            Running = true;
-
-            FindByGuid = serverId => FindOne(a => a.Id == serverId);
-            FindById = serverId => FindOne(a => a.ServerId == serverId);
-            FindByServerName = serverName => FindOne(a => a.ServerName.ToLower() == serverName.ToLower());
-            GetStatusByServerId = serverId => FindOne(a => a.Id == serverId)?.CurrentStatus;
-            GetStatusHistoryByServerId = serverId => FindOne(a => a.Id == serverId).History;
-            GetAllServers = () => _db.GetCollection<ServerEntry>("mir-servers").AsQueryable().ToList();
-            UpdateServerStatus = UpdateStatus;
-            UpdateServer = (guid, entry) =>
+            try
             {
-                var existing = FindOne(a => a.Id == guid);
-                if (existing != null)
-                    Update(entry);
-            };
-            DeleteServer = entry =>
+                _client = new MongoClient($"{_config.DbHost}");
+                _db = _client.GetDatabase("lomcn");
+
+
+                FindByGuid = serverId =>
+                {
+                    try
+                    {
+                        return FindOne(a => a.Id == serverId);
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                        return null;
+                    }
+                };
+                FindById = serverId =>
+                {
+                    try
+                    {
+                        return FindOne(a => a.ServerId == serverId);
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                        return null;
+                    }
+                };
+                FindByServerName = serverName =>
+                {
+                    try
+                    {
+                        return FindOne(a => a.ServerName.ToLower() == serverName.ToLower());
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                        return null;
+                    }
+                };
+                GetStatusByServerId = serverId => 
+                {
+                    try
+                    {
+                        return FindOne(a => a.Id == serverId)?.CurrentStatus;
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                        return null;
+                    }
+                };
+                GetStatusHistoryByServerId = serverId =>
+                {
+                    try
+                    {
+                        return FindOne(a => a.Id == serverId).History;
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                        return null;
+                    }
+                };
+                GetAllServers = () => {
+                    try
+                    {
+                        return _db.GetCollection<ServerEntry>("mir-servers").AsQueryable().ToList();
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                        return null;
+                    }
+                };
+                UpdateServerStatus = UpdateStatus;
+                UpdateServer = (guid, entry) =>
+                {
+                    try
+                    {
+                        var existing = FindOne(a => a.Id == guid);
+                        if (existing != null)
+                            Update(entry);
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                    }
+                };
+                DeleteServer = entry =>
+                {
+                    try
+                    {
+                        if (entry == null || entry.Id == Guid.Empty)
+                            return;
+                        var existing = FindOne(a => a.Id == entry.Id);
+                        if (existing == null)
+                            return;
+                        _db.GetCollection<ServerEntry>("mir-servers").DeleteOne(a => a.Id == entry.Id);
+                    }
+                    catch (Exception e)
+                    {
+                        Program.Log(e);
+                    }
+                };
+                Running = true;
+            }
+            catch (Exception e)
             {
-                if (entry == null || entry.Id == Guid.Empty)
-                    return;
-                var existing = FindOne(a => a.Id == entry.Id);
-                if (existing == null)
-                    return;
-                _db.GetCollection<ServerEntry>("mir-servers").DeleteOne(a => a.Id == entry.Id);
-            };
+                Console.WriteLine(e);
+                throw;
+            }
             while (Running)
             {
                 
@@ -97,8 +183,15 @@ namespace LOMCN.DiscordBot
                 }
                 if (!Ready)
                     Ready = true;
-                var current = GetAllServers();
-                DataUpdated.Invoke(this, current);
+                try
+                {
+                    var current = GetAllServers();
+                    DataUpdated.Invoke(this, current);
+                }
+                catch (Exception e)
+                {
+                    Program.Log(e);
+                }
                 Thread.Sleep(_config.UpdateDelay);
             }
         }
@@ -110,7 +203,8 @@ namespace LOMCN.DiscordBot
             entry.History.Add(new ServerEntryStatusHistory
             {
                 Online = entry.CurrentStatus.Online,
-                UserCount = entry.CurrentStatus.UserCount
+                UserCount = entry.CurrentStatus.UserCount,
+                EntryTime = entry.CurrentStatus.EditTime
             });
             _db.GetCollection<ServerEntry>("mir-servers").InsertOne(entry);
         }
@@ -127,7 +221,7 @@ namespace LOMCN.DiscordBot
             return query.FirstOrDefault(search);
         }
 
-        public void NewServer(ServerModel model)
+        private void NewServer(ServerModel model)
         {
             var existing = FindOne(a => a.ServerName.ToLower() == model.Name.ToLower());
             if (existing != null)
@@ -139,7 +233,8 @@ namespace LOMCN.DiscordBot
                 ServerName = model.Name,
                 ServerType = model.Type,
                 ServerId = Convert.ToInt32(model.Id),
-                ExpRate = model.EXPRate
+                ExpRate = model.EXPRate,
+                RgbColor = string.Empty
             };
             AddEntry(entry);
         }
@@ -153,16 +248,18 @@ namespace LOMCN.DiscordBot
                 NewServer(model);
                 return;
             }
-            var statusHistory = new ServerEntryStatusHistory
-            {
-                Online = entry.CurrentStatus.Online,
-                UserCount = entry.CurrentStatus.UserCount
-            };
             entry.CurrentStatus = new ServerEntryStatus
             {
                 Id = entry.CurrentStatus.Id,
                 Online = model.Online == "1",
-                UserCount = Convert.ToInt32(model.UserCount)
+                UserCount = Convert.ToInt32(model.UserCount),
+                EditTime = DateTime.Now
+            };
+            var statusHistory = new ServerEntryStatusHistory
+            {
+                Online = entry.CurrentStatus.Online,
+                UserCount = entry.CurrentStatus.UserCount,
+                EntryTime = entry.CurrentStatus.EditTime
             };
             entry.History.Add(statusHistory);
             Update(entry);
@@ -171,7 +268,21 @@ namespace LOMCN.DiscordBot
         /// <summary>Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.</summary>
         public void Dispose()
         {
+            Running = false;
             DataUpdated = null;
+            FindById = null;
+            FindByGuid = null;
+            FindByServerName = null;
+            GetStatusByServerId = null;
+            GetStatusHistoryByServerId = null;
+            GetAllServers = null;
+            UpdateServerStatus = null;
+            UpdateServer = null;
+            DeleteServer = null;
+            _client = null;
+            _db = null;
+            DataUpdated = null;
+            _thread = null;
         }
     }
 }

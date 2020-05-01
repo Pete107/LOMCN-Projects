@@ -12,8 +12,8 @@ namespace LOMCN.DiscordBot
         
         public string ServerType { get; set; } = string.Empty;
         public string ExpRate { get; set; } = string.Empty;
+        public string RgbColor { get; set; } = string.Empty;
         public ServerEntryStatus CurrentStatus { get; set; }
         public List<ServerEntryStatusHistory> History { get; set; } = new List<ServerEntryStatusHistory>();
-
     }
 }

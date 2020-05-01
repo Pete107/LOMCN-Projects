@@ -6,6 +6,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Exceptions;
 using DSharpPlus.Interactivity;
 
 namespace LOMCN.DiscordBot
@@ -22,57 +23,72 @@ namespace LOMCN.DiscordBot
         private readonly Config _config;
         public Bot()
         {
-            _config = Program.Config;
-            _client = new DiscordClient(new DiscordConfiguration
+            try
             {
-                AutoReconnect = true,
-                EnableCompression = true,
-                Token = _config.Token,
-                TokenType = TokenType.Bot,
-                LogLevel = LogLevel.Debug,
-                UseInternalLogHandler = true
-            });
-
-            _interactivity = _client.UseInteractivity(new InteractivityConfiguration()
-            {
-                PaginationBehaviour = TimeoutBehaviour.Delete,
-                PaginationTimeout = TimeSpan.FromSeconds(30),
-                Timeout = TimeSpan.FromSeconds(30)
-            });
-
-            _startTimes = new StartTimes
-            {
-                BotStart = DateTime.Now,
-                SocketStart = DateTime.MinValue
-            };
-
-            _cts = new CancellationTokenSource();
-
-            DependencyCollection dep;
-            using (var d = new DependencyCollectionBuilder())
-            {
-                d.AddInstance(new Dependencies
+                _config = Program.Config;
+                _client = new DiscordClient(new DiscordConfiguration
                 {
-                    Interactivty = _interactivity,
-                    StartTimes = _startTimes,
-                    Cts = _cts
+                    AutoReconnect = true,
+                    EnableCompression = true,
+                    Token = _config.Token,
+                    TokenType = TokenType.Bot,
+                    LogLevel = LogLevel.Debug,
+                    UseInternalLogHandler = true
                 });
-                dep = d.Build();
+
+                _interactivity = _client.UseInteractivity(new InteractivityConfiguration()
+                {
+                    PaginationBehaviour = TimeoutBehaviour.Delete,
+                    PaginationTimeout = TimeSpan.FromSeconds(30),
+                    Timeout = TimeSpan.FromSeconds(30)
+                });
+
+                _startTimes = new StartTimes
+                {
+                    BotStart = DateTime.Now,
+                    SocketStart = DateTime.MinValue
+                };
+
+                _cts = new CancellationTokenSource();
+
+                DependencyCollection dep;
+                using (var d = new DependencyCollectionBuilder())
+                {
+                    d.AddInstance(new Dependencies
+                    {
+                        Interactivty = _interactivity,
+                        StartTimes = _startTimes,
+                        Cts = _cts
+                    });
+                    dep = d.Build();
+                }
+
+                var cnext = _client.UseCommandsNext(new CommandsNextConfiguration
+                {
+                    CaseSensitive = false,
+                    EnableMentionPrefix = true,
+                    StringPrefix = _config.Prefix,
+                    IgnoreExtraArguments = true,
+                    Dependencies = dep
+                });
+
+                cnext.RegisterCommands<Interactivity>();
+
+
+                _client.Ready += OnReadyAsync;
+                _client.ClientErrored += ClientOnClientErrored;
             }
-
-            var cnext = _client.UseCommandsNext(new CommandsNextConfiguration
+            catch (Exception e)
             {
-                CaseSensitive = false,
-                EnableMentionPrefix = true,
-                StringPrefix = _config.Prefix,
-                IgnoreExtraArguments = true,
-                Dependencies = dep
-            });
+                Console.WriteLine(e);
+                throw;
+            }
+            
+        }
 
-            cnext.RegisterCommands<Interactivity>();
-
-
-            _client.Ready += OnReadyAsync;
+        private async Task ClientOnClientErrored(ClientErrorEventArgs e)
+        {
+            e.Client.DebugLogger.LogMessage(LogLevel.Error, GetType().Namespace, e.Exception.ToString(), DateTime.Now);
             
         }
 
@@ -91,15 +107,22 @@ namespace LOMCN.DiscordBot
         private DiscordMessage _lastMessage;
         private async Task OnReadyAsync(ReadyEventArgs e)
         {
-            await Task.Yield();
-            _startTimes.SocketStart = DateTime.Now;
-            var guild = await _client.GetGuildAsync(_config.GuildId);
-            var channels= await guild.GetChannelsAsync();
-            _channel = channels.FirstOrDefault(a => a.Id == _config.ChannelId);
-            BotWorker.Instance.StatusChanged += BotWorkerOnStatusChanged;
-            Console.WriteLine("Bot is ready");
-            Ready = true;
-            StatusChecker.Instance.Start();
+            try
+            {
+                await Task.Yield();
+                _startTimes.SocketStart = DateTime.Now;
+                var guild = await _client.GetGuildAsync(_config.GuildId);
+                var channels= await guild.GetChannelsAsync();
+                _channel = channels.FirstOrDefault(a => a.Id == _config.ChannelId);
+                BotWorker.Instance.StatusChanged += BotWorkerOnStatusChanged;
+                Ready = true;
+                Program.SetLogger(e.Client.DebugLogger);
+                Program.Log("Bot ready");
+            }
+            catch (Exception exception)
+            {
+                Program.Log(exception);
+            }
         }
 
         private async void BotWorkerOnStatusChanged(object sender, string output)
@@ -109,19 +132,36 @@ namespace LOMCN.DiscordBot
             if (string.IsNullOrEmpty(output)) return;
             try
             {
-                if (_lastMessage != null)
-                    await _channel.DeleteMessageAsync(_lastMessage);
-                else
+
+
+                try
                 {
-                    var currentMessages = await _channel.GetMessagesAsync();
-                    await _channel.DeleteMessagesAsync(currentMessages);
+                    if (_lastMessage != null)
+                        await _channel.DeleteMessageAsync(_lastMessage);
+                    else
+                    {
+                        var currentMessages = await _channel.GetMessagesAsync();
+                        if (currentMessages != null)
+                            await _channel.DeleteMessagesAsync(currentMessages);
+                    }
+
+                    var temp = output;
+                    _lastMessage = await _channel.SendMessageAsync(temp);
                 }
+                catch (NotFoundException ex)
+                {
+
+                }
+                catch (Exception e)
+                {
+                    Program.Log(e);
+                }
+
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Program.Log(e);
             }
-            _lastMessage = await _channel?.SendMessageAsync(output);
         }
 
 

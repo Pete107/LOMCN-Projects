@@ -19,9 +19,9 @@ namespace LOMCN.DiscordBot
 
         [JsonProperty("output_delay")] internal TimeSpan OutputDelay { get; set; } = TimeSpan.FromMinutes(15);
         [JsonProperty("update_delay")] internal TimeSpan UpdateDelay { get; set; } = TimeSpan.FromMinutes(10);
-        [JsonProperty("server_ping_timeout")] internal TimeSpan PingTimeout { get; set; } = TimeSpan.FromSeconds(2);
         [JsonProperty("guildId")] internal ulong GuildId { get; set; } = 0;
         [JsonProperty("channelId")] internal ulong ChannelId { get; set; } = 0;
+        [JsonProperty("output_string_format")] internal string OutputFormat { get; set; } = "<$SERVERNAME$> [$USERCOUNT$][$STATUS$]";
 
         [JsonProperty("status_request_endpoint")]
         internal string StatusURL { get; set; } = "https://www.lomcn.org/forum/siggen/siggen_getdata.php";

@@ -15,19 +15,17 @@ namespace LOMCN.DiscordBot
         private BotWorker()
         {
             DbHandler.Instance.DataUpdated += InstanceOnDataUpdated;
-            _timer = new Timer {Interval = 1000, Enabled = true};
+            _timer = new Timer {Interval = 5000, Enabled = true};
             _timer.Elapsed += TimerOnElapsed;
             _timer.Start();
         }
 
         private void TimerOnElapsed(object sender, ElapsedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(_output))
-            {
-                StatusChanged?.Invoke(null, _output);
-                if (Bot.Ready)
-                    _output = string.Empty;
-            }
+            if (string.IsNullOrEmpty(_output)) return;
+            StatusChanged?.Invoke(null, _output);
+            if (Bot.Ready)
+                _output = string.Empty;
         }
 
         private void InstanceOnDataUpdated(object sender, List<ServerEntry> e)
@@ -35,18 +33,21 @@ namespace LOMCN.DiscordBot
             _models = e;
             lock (_models)
             {
-                _models = _models.OrderBy(a => a.CurrentStatus.Online)
+                _models = _models.OrderByDescending(a => a.CurrentStatus.Online)
                     .ThenByDescending(a => a.CurrentStatus.UserCount != -1)
                     .ThenByDescending(a => a.CurrentStatus.UserCount).ToList();
-                _output = "```md\r\n";
+                var temp = "```md\r\n";
                 foreach (var serverEntry in _models)
                 {
 
-                    _output +=
-                        $"<{serverEntry.ServerName}> [{serverEntry.CurrentStatus.UserCount}][{(serverEntry.CurrentStatus.Online ? "Online" : "Offline")}]\r\n";
+                    temp += Program.Config.OutputFormat
+                        .Replace("$SERVERNAME$", serverEntry.ServerName)
+                        .Replace("$STATUS$", serverEntry.CurrentStatus.Online ? "Online" : "Offline")
+                        .Replace("$USERCOUNT$", $"{serverEntry.CurrentStatus.UserCount}");
                 }
 
-                _output += "```";
+                temp += "```";
+                _output = temp;
             }
         }
 
