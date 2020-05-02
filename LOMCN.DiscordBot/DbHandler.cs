@@ -169,7 +169,7 @@ namespace LOMCN.DiscordBot
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                Program.Log(e);
                 throw;
             }
             while (Running)

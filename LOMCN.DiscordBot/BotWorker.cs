@@ -44,8 +44,9 @@ namespace LOMCN.DiscordBot
                         .Replace("$SERVERNAME$", serverEntry.ServerName)
                         .Replace("$STATUS$", serverEntry.CurrentStatus.Online ? "Online" : "Offline")
                         .Replace("$USERCOUNT$", $"{serverEntry.CurrentStatus.UserCount}");
+                    if (!temp.EndsWith("\r\n"))
+                        temp += "\r\n";
                 }
-
                 temp += "```";
                 _output = temp;
             }

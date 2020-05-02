@@ -22,7 +22,8 @@ namespace LOMCN.DiscordBot
         [Command("shutdown")]
         public async Task ShutdownAsync(CommandContext ctx)
         {
-            if (ctx.Member.Id != 121672783989178368 && ctx.Member.Id != 514554160721428517)
+            if (ctx.Member.Id != 121672783989178368 &&
+                ctx.Member.Id != 216147797676785664)
                 return;
             await ctx.RespondAsync("Shutting down!");
             dep.Cts.Cancel();
@@ -32,7 +33,7 @@ namespace LOMCN.DiscordBot
         [Command("setcolour")]
         public async Task SetServerColor(CommandContext ctx, string serverName, byte r, byte g, byte b)
         {
-            if (ctx.Member.Id != 121672783989178368 && ctx.Member.Id != 514554160721428517)
+            if (ctx.Member.Id != 121672783989178368 && ctx.Member.Id != 216147797676785664)
                 return;
             try
             {
