@@ -82,7 +82,7 @@ namespace LOMCN.DiscordBot
                     serverEntryStatusHistory.UserCount != -1 ? serverEntryStatusHistory.UserCount : 0);
                 var averageUserCount = totalUserCount / server.History.Count;
                 var onlinePercent = timesOnline * 100m / server.History.Count;
-                await ctx.RespondAsync($"{serverName} has an up-time of : {onlinePercent}% with an average User count of : {averageUserCount}.");
+                await ctx.RespondAsync($"{serverName} has an up-time of : {onlinePercent:##.##}% with an average User count of : {averageUserCount}.");
             }
             catch (Exception e)
             {
