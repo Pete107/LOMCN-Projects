@@ -151,32 +151,52 @@ namespace LOMCN.DiscordBot
                                     res.Dispose();
                                     foreach (var serverModel in serverList)
                                     {
-                                        var model = new ServerEntry
+                                        if (await Program.ServerStatusRepository.EntryExists(Convert.ToInt32(serverModel.Id)))
                                         {
-                                            CurrentStatus = new ServerEntryStatus
+                                            var model = await Program.ServerStatusRepository.FindById(
+                                                Convert.ToInt32(serverModel.Id));
+                                            model.CurrentStatus.EditTime = DateTime.Now;
+                                            model.CurrentStatus.Online = serverModel.Online == "1";
+                                            model.CurrentStatus.UserCount = Convert.ToInt32(serverModel.UserCount);
+                                            model.History = new List<ServerEntryStatusHistory>
                                             {
-                                                EditTime = DateTime.Now,
+                                                new ServerEntryStatusHistory
+                                                {
+                                                    EntryTime = DateTime.Now, Id = Guid.NewGuid(),
+                                                    Online = serverModel.Online == "1", ServerId = model.Id,
+                                                    UserCount = model.CurrentStatus.UserCount
+                                                }
+                                            };
+                                            await Program.ServerStatusRepository.UpdateCurrentStatusAsync(model);
+                                        }
+                                        else
+                                        {
+                                            var model = new ServerEntry
+                                            {
+                                                CurrentStatus = new ServerEntryStatus(),
+                                                ExpRate = serverModel.EXPRate,
                                                 Id = Guid.NewGuid(),
-                                                Online = serverModel.Online == "1",
-                                                UserCount = Convert.ToInt32(serverModel.UserCount)
-                                            },
-                                            ExpRate = serverModel.EXPRate,
-                                            Id = Guid.NewGuid(),
-                                            RgbColor = "rgb(0, 0, 0)",
-                                            ServerId = Convert.ToInt32(serverModel.Id),
-                                            ServerName = serverModel.Name,
-                                            ServerType = serverModel.Type
-                                        };
-                                        model.History = new List<ServerEntryStatusHistory>
-                                        {
-                                            new ServerEntryStatusHistory
+                                                RgbColor = "rgb(0, 0, 0)",
+                                                ServerId = Convert.ToInt32(serverModel.Id),
+                                                ServerName = serverModel.Name,
+                                                ServerType = serverModel.Type
+                                            };
+                                            model.CurrentStatus.Id = Guid.NewGuid();
+                                            model.CurrentStatus.EditTime = DateTime.Now;
+                                            model.CurrentStatus.Online = serverModel.Online == "1";
+                                            model.CurrentStatus.UserCount = Convert.ToInt32(serverModel.UserCount);
+                                            model.History = new List<ServerEntryStatusHistory>
                                             {
-                                                EntryTime = DateTime.Now, Id = Guid.NewGuid(),
-                                                Online = serverModel.Online == "1", ServerId = model.Id,
-                                                UserCount = model.CurrentStatus.UserCount
-                                            }
-                                        };
-                                        await _serverStatusRepository.UpdateCurrentStatusAsync(model);
+                                                new ServerEntryStatusHistory
+                                                {
+                                                    EntryTime = DateTime.Now, Id = Guid.NewGuid(),
+                                                    Online = serverModel.Online == "1", ServerId = model.Id,
+                                                    UserCount = model.CurrentStatus.UserCount
+                                                }
+                                            };
+                                            await _serverStatusRepository.AddServerAsync(model);
+                                        }
+                                        
                                     }
                                 }
                                 catch (Exception e)
