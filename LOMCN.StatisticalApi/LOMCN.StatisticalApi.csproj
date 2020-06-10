@@ -13,9 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="C:\Users\pete1\source\repos\LOMCN-Projects\LOMCN.Common\LOMCN.Common.csproj">
-      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
-    </ProjectReference>
+    <ProjectReference Include="..\LOMCN.Common\LOMCN.Common.csproj" />
   </ItemGroup>
 
   <ItemGroup>
