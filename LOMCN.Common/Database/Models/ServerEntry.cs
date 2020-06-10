@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using MongoDB.Bson.Serialization.Attributes;
 
-namespace LOMCN.DiscordBot
+namespace LOMCN.Common.Database.Models
 {
     public class ServerEntry
     {
@@ -14,6 +15,7 @@ namespace LOMCN.DiscordBot
         public string ExpRate { get; set; } = string.Empty;
         public string RgbColor { get; set; } = string.Empty;
         public ServerEntryStatus CurrentStatus { get; set; }
-        public List<ServerEntryStatusHistory> History { get; set; } = new List<ServerEntryStatusHistory>();
+        [BsonIgnore]
+        public List<ServerEntryStatusHistory> History = new List<ServerEntryStatusHistory>();
     }
 }

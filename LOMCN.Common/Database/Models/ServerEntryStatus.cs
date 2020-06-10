@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LOMCN.DiscordBot
+namespace LOMCN.Common.Database.Models
 {
     public class ServerEntryStatus
     {

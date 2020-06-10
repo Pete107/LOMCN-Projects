@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using DSharpPlus;
+using LOMCN.Common;
+using LOMCN.Common.Database;
 
 namespace LOMCN.DiscordBot
 {
@@ -8,8 +10,7 @@ namespace LOMCN.DiscordBot
     {
         private static Config _config;
         public static Config Config => _config;
-        private static DbHandler _dbHandler;
-        private static StatusChecker _statusChecker;
+        public static ServerStatusRepository ServerStatusRepository;
         private static Bot Bot { get; set; }
         private static DebugLogger _logger;
 
@@ -33,10 +34,7 @@ namespace LOMCN.DiscordBot
             }
             if (_config.Token != "YOUR_TOKEN_HERE")
             {
-                _dbHandler = DbHandler.Instance;
-                _statusChecker = StatusChecker.Instance;
-                _dbHandler.Start();
-                _statusChecker.Start();
+                ServerStatusRepository = new ServerStatusRepository(_config);
                 
                 using (Bot = new Bot())
                 {

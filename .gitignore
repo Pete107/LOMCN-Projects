@@ -338,3 +338,6 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/LOMCN.DiscordBot/config.json
+/LOMCN.DiscordBot/DiscImage.bmp
+/LOMCN.StatisticalApi/LOMCN.StatisticalApi.sln

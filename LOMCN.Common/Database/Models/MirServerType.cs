@@ -1,8 +1,4 @@
-﻿// Created By Pete Smith
-// Created 11/03/2020
-// Last Edit 11/03/2020
-
-namespace LOMCN.DiscordBot
+﻿namespace LOMCN.Common.Database.Models
 {
     public enum MirServerType
     {
