@@ -10,7 +10,7 @@ COPY ["LOMCN.DiscordBot/LOMCN.DiscordBot.csproj", "LOMCN.DiscordBot/"]
 RUN dotnet restore "LOMCN.DiscordBot/LOMCN.DiscordBot.csproj"
 COPY . .
 WORKDIR "/src/LOMCN.DiscordBot"
-RUN dotnet build "LOMCN.DiscordBot.csproj" --build-arg "my_arg=NTgwNzE0NzMwNjIxMTA4MjQ0.XmqTug.7WhifKe9-Q6aV0TH58eyvUDPAy4" -c Release -o /app/build
+RUN dotnet build "LOMCN.DiscordBot.csproj" --build-arg -c Release -o /app/build
 
 FROM build AS publish
 RUN dotnet publish "LOMCN.DiscordBot.csproj" -c Release -o /app/publish
